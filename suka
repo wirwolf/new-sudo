@@ -1,0 +1,72 @@
+#!/usr/bin/env php
+<?php
+
+
+if (in_array('--help', $argv)) {
+    print_r('Usage: suka --blyat {any linux command}');
+    echo "\n\r";
+    die();
+}
+
+if (in_array('--blyat', $argv)) {
+
+    // Get the password
+    fwrite(STDOUT, "Password: ");
+    $password = getPassword(true);
+    
+    unset($argv[0]);
+    foreach ($argv as $k => $value) {
+        if ($value === '--blyat') {
+            unset($argv[$k]);
+        }
+    }
+    $str = exec('echo \'' . $password . '\' | sudo -S ' . implode(' ', $argv), $result);
+    echo "\n\r";
+    foreach ($result as $k => $item) {
+        print_r($k . ': ');
+        print_r($item);
+        echo "\n\r";
+    }
+
+
+} else {
+    echo 'Not found param: --blyat' . "\n\r";
+}
+
+
+function getPassword($stars = false) {
+    // Get current style
+    $oldStyle = shell_exec('stty -g');
+
+    if ($stars === false) {
+        shell_exec('stty -echo');
+        $password = rtrim(fgets(STDIN), "\n");
+    } else {
+        shell_exec('stty -icanon -echo min 1 time 0');
+
+        $password = '';
+        while (true) {
+            $char = fgetc(STDIN);
+
+            if ($char === "\n") {
+                break;
+            } else {
+                if (ord($char) === 127) {
+                    if (strlen($password) > 0) {
+                        fwrite(STDOUT, "\x08 \x08");
+                        $password = substr($password, 0, -1);
+                    }
+                } else {
+                    fwrite(STDOUT, "*");
+                    $password .= $char;
+                }
+            }
+        }
+    }
+
+    // Reset old style
+    shell_exec('stty ' . $oldStyle);
+
+    // Return the password
+    return $password;
+}
